@@ -15,10 +15,10 @@ if __name__ == "__main__":
     models = [
         # "lmsys/vicuna-7b-v1.3",
         # "lmsys/fastchat-t5-3b-v1.0",
-        # "../../chatglm2-6b",
+        "../../chatglm2-6b",
         # "mosaicml/mpt-7b-chat",
         # "../../Qwen-7B-Chat",
-        "../../Qwen-7B-Chat",
+        # "../../Qwen-7B-Chat",
     ]
 
     for i, model_path in enumerate(models):
