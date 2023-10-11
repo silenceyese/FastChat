@@ -10,7 +10,7 @@ def launch_process(cmd):
 
 if __name__ == "__main__":
     launch_process("python3 -m fastchat.serve.controller")
-    launch_process("python3 -m fastchat.serve.openai_api_server")
+    launch_process("python3 -m fastchat.serve.openai_api_server --host 0.0.0.0")
 
     models = [
         # ("lmsys/vicuna-7b-v1.5", "model_worker"),
