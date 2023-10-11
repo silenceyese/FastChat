@@ -13,11 +13,12 @@ if __name__ == "__main__":
     launch_process("python3 -m fastchat.serve.openai_api_server")
 
     models = [
-        ("lmsys/vicuna-7b-v1.5", "model_worker"),
-        ("lmsys/fastchat-t5-3b-v1.0", "model_worker"),
-        ("THUDM/chatglm-6b", "model_worker"),
-        ("mosaicml/mpt-7b-chat", "model_worker"),
-        ("meta-llama/Llama-2-7b-chat-hf", "vllm_worker"),
+        # ("lmsys/vicuna-7b-v1.5", "model_worker"),
+        # ("lmsys/fastchat-t5-3b-v1.0", "model_worker"),
+        # ("THUDM/chatglm-6b", "model_worker"),
+        # ("mosaicml/mpt-7b-chat", "model_worker"),
+        # ("meta-llama/Llama-2-7b-chat-hf", "vllm_worker"),
+        ("../../Qwen-14B-Chat-Int4", "model_worker"),
     ]
 
     for i, (model_path, worker_name) in enumerate(models):
