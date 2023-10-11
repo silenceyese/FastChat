@@ -19,7 +19,13 @@ def register_model_info(
 
 
 def get_model_info(name: str) -> ModelInfo:
-    return model_info[name]
+    if name in model_info:
+        return model_info[name]
+    else:
+        # To fix this, please use `register_model_info` to register your model
+        return ModelInfo(
+            name, "", "Register the description at fastchat/model/model_registry.py"
+        )
 
 
 register_model_info(
@@ -62,6 +68,12 @@ register_model_info(
     "open foundation and fine-tuned chat models by Meta",
 )
 register_model_info(
+    ["codellama-34b-instruct", "codellama-13b-instruct", "codellama-7b-instruct"],
+    "Code Llama",
+    "https://ai.meta.com/blog/code-llama-large-language-model-coding/",
+    "open foundation models for code by Meta",
+)
+register_model_info(
     [
         "vicuna-33b",
         "vicuna-33b-v1.3",
@@ -72,10 +84,10 @@ register_model_info(
     ],
     "Vicuna",
     "https://lmsys.org/blog/2023-03-30-vicuna/",
-    "a chat assistant fine-tuned from LLaMA on user-shared conversations by LMSYS",
+    "a chat assistant fine-tuned on user-shared conversations by LMSYS",
 )
 register_model_info(
-    ["wizardlm-13b"],
+    ["wizardlm-70b", "wizardlm-30b", "wizardlm-13b"],
     "WizardLM",
     "https://github.com/nlpxucan/WizardLM",
     "an instruction-following LLM using evol-instruct by Microsoft",
@@ -208,14 +220,24 @@ register_model_info(
 )
 register_model_info(
     [
-        "airoboros-7b-gpt4-1.4",
-        "airoboros-13b-gpt4-1.4",
-        "airoboros-33b-gpt4-1.4",
-        "airoboros-65b-gpt4-1.4",
+        "airoboros-l2-7b-2.1",
+        "airoboros-l2-13b-2.1",
+        "airoboros-c34b-2.1",
+        "airoboros-l2-70b-2.1",
     ],
     "airoboros",
-    "https://huggingface.co/jondurbin/airoboros-33b-gpt4-1.4",
+    "https://huggingface.co/jondurbin/airoboros-l2-70b-2.1",
     "an instruction-tuned LlaMa model tuned with 100% synthetic instruction-response pairs from GPT4",
+)
+register_model_info(
+    [
+        "spicyboros-7b-2.2",
+        "spicyboros-13b-2.2",
+        "spicyboros-70b-2.2",
+    ],
+    "spicyboros",
+    "https://huggingface.co/jondurbin/spicyboros-70b-2.2",
+    "de-aligned versions of the airoboros models",
 )
 register_model_info(
     ["Robin-7b-v2", "Robin-13b-v2", "Robin-33b-v2"],
@@ -236,9 +258,16 @@ register_model_info(
     "A chatbot fine-tuned from RedPajama-INCITE-7B-Base by Together",
 )
 register_model_info(
-    ["falcon-7b", "falcon-7b-instruct", "falcon-40b", "falcon-40b-instruct"],
+    [
+        "falcon-7b",
+        "falcon-7b-instruct",
+        "falcon-40b",
+        "falcon-40b-instruct",
+        "falcon-180b",
+        "falcon-180b-chat",
+    ],
     "Falcon",
-    "https://huggingface.co/tiiuae/falcon-40b",
+    "https://huggingface.co/tiiuae/falcon-180B",
     "TII's flagship series of large language models",
 )
 register_model_info(
@@ -276,4 +305,16 @@ register_model_info(
     "Vigogne-Chat",
     "https://huggingface.co/bofenghuang/vigogne-2-7b-chat",
     "Vigogne-Chat is a French large language model (LLM) optimized for instruction-following and multi-turn dialogues, developed by Bofeng Huang",
+)
+register_model_info(
+    ["mistral-7b-instruct"],
+    "Mistral",
+    "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1",
+    "a large language model by Mistral AI team",
+)
+register_model_info(
+    ["deluxe-chat-v1"],
+    "DeluxeChat",
+    "",
+    "Deluxe Chat",
 )

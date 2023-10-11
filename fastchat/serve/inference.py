@@ -35,8 +35,9 @@ from fastchat.model.model_adapter import (
     get_conversation_template,
     get_generate_stream_function,
 )
-from fastchat.modules.gptq import GptqConfig
 from fastchat.modules.awq import AWQConfig
+from fastchat.modules.gptq import GptqConfig
+from fastchat.modules.exllama import ExllamaConfig
 from fastchat.utils import is_partial_stop, is_sentence_complete, get_context_length
 
 
@@ -80,7 +81,8 @@ def generate_stream(
     echo = bool(params.get("echo", True))
     stop_str = params.get("stop", None)
     stop_token_ids = params.get("stop_token_ids", None) or []
-    stop_token_ids.append(tokenizer.eos_token_id)
+    if tokenizer.eos_token_id not in stop_token_ids:
+        stop_token_ids.append(tokenizer.eos_token_id)
 
     logits_processor = prepare_logits_processor(
         temperature, repetition_penalty, top_p, top_k
@@ -108,6 +110,7 @@ def generate_stream(
 
     past_key_values = out = None
     sent_interrupt = False
+    finish_reason = None
     for i in range(max_new_tokens):
         if i == 0:  # prefill
             if model.config.is_encoder_decoder:
@@ -240,12 +243,11 @@ def generate_stream(
             break
 
     # Finish stream event, which contains finish reason
-    if i == max_new_tokens - 1:
-        finish_reason = "length"
-    elif stopped:
-        finish_reason = "stop"
     else:
-        finish_reason = None
+        finish_reason = "length"
+
+    if stopped:
+        finish_reason = "stop"
 
     yield {
         "text": output,
@@ -263,6 +265,8 @@ def generate_stream(
     torch.cuda.empty_cache()
     if device == "xpu":
         torch.xpu.empty_cache()
+    if device == "npu":
+        torch.npu.empty_cache()
 
 
 class ChatIO(abc.ABC):
@@ -288,6 +292,7 @@ def chat_loop(
     device: str,
     num_gpus: int,
     max_gpu_memory: str,
+    dtype: Optional[torch.dtype],
     load_8bit: bool,
     cpu_offloading: bool,
     conv_template: Optional[str],
@@ -298,6 +303,7 @@ def chat_loop(
     chatio: ChatIO,
     gptq_config: Optional[GptqConfig] = None,
     awq_config: Optional[AWQConfig] = None,
+    exllama_config: Optional[ExllamaConfig] = None,
     revision: str = "main",
     judge_sent_end: bool = True,
     debug: bool = True,
@@ -309,10 +315,12 @@ def chat_loop(
         device=device,
         num_gpus=num_gpus,
         max_gpu_memory=max_gpu_memory,
+        dtype=dtype,
         load_8bit=load_8bit,
         cpu_offloading=cpu_offloading,
         gptq_config=gptq_config,
         awq_config=awq_config,
+        exllama_config=exllama_config,
         revision=revision,
         debug=debug,
     )

@@ -34,6 +34,7 @@ except ImportError:
     )
 import torch
 import torch.nn.functional as F
+from transformers import set_seed
 import uvicorn
 
 from fastchat.constants import WORKER_HEART_BEAT_INTERVAL, ErrorCode, SERVER_ERROR_MSG
@@ -44,8 +45,15 @@ from fastchat.model.model_adapter import (
     get_conversation_template,
     get_generate_stream_function,
 )
-from fastchat.modules.gptq import GptqConfig
 from fastchat.modules.awq import AWQConfig
+from fastchat.modules.exllama import ExllamaConfig
+from fastchat.modules.gptq import GptqConfig
+from fastchat.utils import (
+    build_logger,
+    pretty_print_semaphore,
+    get_context_length,
+    str_to_torch_dtype,
+)
 from fastchat.utils import build_logger, pretty_print_semaphore, get_context_length
 
 
@@ -164,8 +172,12 @@ class BaseModelWorker:
 
     def count_token(self, params):
         prompt = params["prompt"]
-        input_ids = self.tokenizer(prompt).input_ids
-        input_echo_len = len(input_ids)
+
+        try:
+            input_ids = self.tokenizer(prompt).input_ids
+            input_echo_len = len(input_ids)
+        except TypeError:
+            input_echo_len = self.tokenizer.num_tokens(prompt)
 
         ret = {
             "count": input_echo_len,
@@ -190,13 +202,16 @@ class ModelWorker(BaseModelWorker):
         device: str,
         num_gpus: int,
         max_gpu_memory: str,
+        dtype: Optional[torch.dtype] = None,
         load_8bit: bool = False,
         cpu_offloading: bool = False,
         gptq_config: Optional[GptqConfig] = None,
         awq_config: Optional[AWQConfig] = None,
+        exllama_config: Optional[ExllamaConfig] = None,
         stream_interval: int = 2,
-        conv_template: str = None,
+        conv_template: Optional[str] = None,
         embed_in_truncate: bool = False,
+        seed: Optional[int] = None,
         **kwargs,
     ):
         super().__init__(
@@ -215,10 +230,12 @@ class ModelWorker(BaseModelWorker):
             device=device,
             num_gpus=num_gpus,
             max_gpu_memory=max_gpu_memory,
+            dtype=dtype,
             load_8bit=load_8bit,
             cpu_offloading=cpu_offloading,
             gptq_config=gptq_config,
             awq_config=awq_config,
+            exllama_config=exllama_config,
         )
         self.device = device
         if self.tokenizer.pad_token == None:
@@ -227,6 +244,7 @@ class ModelWorker(BaseModelWorker):
         self.generate_stream_func = get_generate_stream_function(self.model, model_path)
         self.stream_interval = stream_interval
         self.embed_in_truncate = embed_in_truncate
+        self.seed = seed
 
         if not no_register:
             self.init_heart_beat()
@@ -235,6 +253,8 @@ class ModelWorker(BaseModelWorker):
         self.call_ct += 1
 
         try:
+            if self.seed is not None:
+                set_seed(self.seed)
             for output in self.generate_stream_func(
                 self.model,
                 self.tokenizer,
@@ -370,6 +390,8 @@ class ModelWorker(BaseModelWorker):
             torch.cuda.empty_cache()
             if self.device == "xpu":
                 torch.xpu.empty_cache()
+            if self.device == "npu":
+                torch.npu.empty_cache()
         except torch.cuda.OutOfMemoryError as e:
             ret = {
                 "text": f"{SERVER_ERROR_MSG}\n\n({e})",
@@ -473,6 +495,12 @@ def create_model_worker():
     )
     parser.add_argument("--stream-interval", type=int, default=2)
     parser.add_argument("--no-register", action="store_true")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Overwrite the random seed for each generation.",
+    )
     args = parser.parse_args()
     logger.info(f"args: {args}")
 
@@ -494,6 +522,13 @@ def create_model_worker():
         wbits=args.awq_wbits,
         groupsize=args.awq_groupsize,
     )
+    if args.enable_exllama:
+        exllama_config = ExllamaConfig(
+            max_seq_len=args.exllama_max_seq_len,
+            gpu_split=args.exllama_gpu_split,
+        )
+    else:
+        exllama_config = None
 
     worker = ModelWorker(
         args.controller_address,
@@ -506,13 +541,16 @@ def create_model_worker():
         device=args.device,
         num_gpus=args.num_gpus,
         max_gpu_memory=args.max_gpu_memory,
+        dtype=str_to_torch_dtype(args.dtype),
         load_8bit=args.load_8bit,
         cpu_offloading=args.cpu_offloading,
         gptq_config=gptq_config,
         awq_config=awq_config,
+        exllama_config=exllama_config,
         stream_interval=args.stream_interval,
         conv_template=args.conv_template,
         embed_in_truncate=args.embed_in_truncate,
+        seed=args.seed,
     )
     return args, worker
 
