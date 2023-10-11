@@ -27,6 +27,7 @@ if __name__ == "__main__":
             f"CUDA_VISIBLE_DEVICES={i} python3 -m fastchat.serve.{worker_name} "
             f"--model-path {model_path} --port {30000+i} "
             f"--worker-address http://localhost:{30000+i} "
+            f"--model-names gpt-3.5-turbo "
         )
         if worker_name == "vllm_worker":
             cmd += "--tokenizer hf-internal-testing/llama-tokenizer"
