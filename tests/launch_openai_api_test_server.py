@@ -18,7 +18,8 @@ if __name__ == "__main__":
         # ("THUDM/chatglm-6b", "model_worker"),
         # ("mosaicml/mpt-7b-chat", "model_worker"),
         # ("meta-llama/Llama-2-7b-chat-hf", "vllm_worker"),
-        ("../../Qwen-14B-Chat-Int4", "model_worker"),
+        ("../../Qwen-7B-Chat", "model_worker"),
+        # ("../../Qwen-14B-Chat-Int4", "model_worker"),
     ]
 
     for i, (model_path, worker_name) in enumerate(models):
