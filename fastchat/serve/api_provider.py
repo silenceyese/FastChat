@@ -22,8 +22,19 @@ def openai_api_stream_iter(
 ):
     import openai
 
+    is_azure = False
+    if "azure" in model_name:
+        is_azure = True
+        openai.api_type = "azure"
+        openai.api_version = "2023-07-01-preview"
+    else:
+        openai.api_type = "open_ai"
+        openai.api_version = None
+
     openai.api_base = api_base or "https://api.openai.com/v1"
     openai.api_key = api_key or os.environ["OPENAI_API_KEY"]
+    if model_name == "gpt-4-turbo":
+        model_name = "gpt-4-1106-preview"
 
     # Make requests
     gen_params = {
@@ -35,21 +46,31 @@ def openai_api_stream_iter(
     }
     logger.info(f"==== request ====\n{gen_params}")
 
-    res = openai.ChatCompletion.create(
-        model=model_name,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_new_tokens,
-        stream=True,
-    )
+    if is_azure:
+        res = openai.ChatCompletion.create(
+            engine=model_name,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_new_tokens,
+            stream=True,
+        )
+    else:
+        res = openai.ChatCompletion.create(
+            model=model_name,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_new_tokens,
+            stream=True,
+        )
     text = ""
     for chunk in res:
-        text += chunk["choices"][0]["delta"].get("content", "")
-        data = {
-            "text": text,
-            "error_code": 0,
-        }
-        yield data
+        if len(chunk["choices"]) > 0:
+            text += chunk["choices"][0]["delta"].get("content", "")
+            data = {
+                "text": text,
+                "error_code": 0,
+            }
+            yield data
 
 
 def anthropic_api_stream_iter(model_name, prompt, temperature, top_p, max_new_tokens):
